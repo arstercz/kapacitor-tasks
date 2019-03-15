@@ -1,0 +1,53 @@
+dbrp "hostmonitor"."autogen"
+var period_time = 2m
+var every_time  = 1m
+var warn_value = 20
+
+var mysql_data = stream
+   |from()
+    .measurement('mysql')
+    .groupBy('dc', 'host', 'server')
+   |default()
+    .field('threads_connected', 0)
+    .field('threads_running', 0)
+   |window()
+    .period(period_time)
+    .every(every_time)
+    .align()
+
+var var_data = stream
+   |from()
+    .measurement('mysql_variables')
+    .groupBy('dc', 'host', 'server')
+   |window()
+    .period(period_time)
+    .every(every_time)
+    .align()
+
+var conn = mysql_data
+   |mean('threads_connected')
+    .as('value')
+
+var run = mysql_data
+   |mean('threads_running')
+    .as('value')
+
+var max = var_data
+   |last('max_connections')
+    .as('value')
+
+max
+   |join(conn, run)
+    .as('jmax', 'jconn', 'jrun')
+   |alert()
+      .id('{{ .TaskName }}-mysql connections')
+      .details('''
+Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Host: {{ index .Tags "host" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
+''')
+      .message('{{ .Level}}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "server" }}/mysql-conn - thread running: {{ index .Fields "jrun.value" | printf "%0.2f" }}, thread connected: {{ index .Fields "jconn.value" | printf "%0.2f" }}, max connect: {{ index .Fields "jmax.value" }}')
+      .warn(lambda: "jrun.value" > warn_value AND int("jrun.value" / "jconn.value") * 100 > 30 )
+      .critReset(lambda: int("jconn.value" / "jmax.value") * 100 > 50)
+      .log('/tmp/mysql_conn.log')
+
+      .email()
+        .to('email-address')

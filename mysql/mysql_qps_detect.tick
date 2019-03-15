@@ -1,0 +1,31 @@
+dbrp "hostmonitor"."autogen"
+var period_time = 5m
+var every_time  = 1m
+var warn_value = 1000
+var crit_value = 5000
+
+// all read, write unit is iops
+var mysql_data = batch
+   |query('''
+       SELECT derivative("com_select") + derivative("com_update") + derivative("com_update_multi") + derivative("com_insert") + derivative("com_insert_select") + derivative("com_replace") + derivative("com_replace_select") + derivative("com_delete") + derivative("com_delete_multi") + derivative("com_begin") + derivative("com_commit") + derivative("com_rollback") + derivative("com_show_status") + derivative("com_show_variables") + derivative("com_stmt_execute") as com_qps
+       FROM "hostmonitor"."autogen"."mysql"
+     ''')
+     .groupBy('dc', 'host', 'name')
+     .period(period_time)
+     .every(every_time)
+     .align()
+   |eval(lambda: sigma("com_qps"))
+      .as('sigma')
+      .keep()
+   |alert()
+      .id('{{ .TaskName }}-mysql qps')
+      .details('''
+Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
+''')
+      .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "server" }}/diskio - qps: {{ index .Fields "qps" | printf "%0.2f" }}iops, sigma: {{ index .Fields "sigma" }}')
+      .warn(lambda: "sigma" > warn_value) 
+      .critReset(lambda: "sigma" > crit_value) 
+      .log('/tmp/mysql_qps_detect.log')
+
+      .email()
+        .to('email-address')

@@ -1,0 +1,88 @@
+dbrp "hostmonitor"."autogen"
+var period_time = 3m
+var every_time  = 2m
+var warn_value = 8000
+var crit_value = 20000
+
+// all read, write unit is iops
+var mysql_data = batch
+   |query('''
+       SELECT derivative("com_select") as com_sel, derivative("com_update") as com_upd, derivative("com_update_multi") as com_upd_mul, derivative("com_insert") as com_ins, derivative("com_insert_select") as com_ins_sel, derivative("com_replace") as com_rep, derivative("com_replace_select") as com_rep_sel, derivative("com_delete") as com_del, derivative("com_delete_multi") as com_del_mul, derivative("com_begin") as com_begin, derivative("com_commit") as com_commit, derivative("com_rollback") as com_roll, derivative("com_show_status") as com_s_sts, derivative("com_show_variables") as com_s_var, derivative("com_stmt_execute") as com_s_exe
+       FROM "hostmonitor"."autogen"."mysql"
+     ''')
+     .groupBy('dc', 'host', 'name')
+     .period(period_time)
+     .every(every_time)
+     .align()
+
+var com_sel = mysql_data
+  |last('com_sel')
+    .as('value')
+
+var com_upd = mysql_data
+  |eval(lambda: "com_upd" + "com_upd_mul")
+    .as('com_upd')
+  |last('com_upd')
+    .as('value')
+
+var com_ins = mysql_data
+  |eval(lambda: "com_ins" + "com_ins_sel")
+    .as('com_ins')
+  |last('com_ins')
+    .as('value')
+
+var com_rep = mysql_data
+  |eval(lambda: "com_rep" + "com_rep_sel")
+    .as('com_rep')
+  |last('com_rep')
+    .as('value')
+
+var com_del = mysql_data
+  |eval(lambda: "com_del" + "com_del_mul")
+    .as('com_del')
+  |last('com_del')
+    .as('value')
+
+var com_begin = mysql_data
+  |last('com_begin')
+    .as('value')
+
+var com_commit = mysql_data
+  |last('com_commit')
+    .as('commit')
+
+var com_roll = mysql_data
+  |last('com_roll')
+    .as('value')
+
+var com_s_sts = mysql_data
+  |last('com_s_sts')
+    .as('value')
+
+var com_s_var = mysql_data
+  |last('com_s_var')
+    .as('value')
+
+var com_s_exe = mysql_data
+  |last('com_s_exe')
+    .as('value')
+
+
+com_sel
+   |join(com_upd, com_ins, com_rep, com_del, com_begin, com_commit, com_roll, com_s_sts, com_s_var, com_s_exe)
+     .as('jsel', 'jupd', 'jins', 'jrep', 'jdel', 'jbeg', 'jcomm', 'jroll', 'jss', 'jsv', 'jse')
+   |eval(lambda: "jsel.value" + "jupd.value" + "jins.value" + "jdel.value" + "jbeg.value" + "jroll.value" + "jss.value" + "jsv.value" + "jse.value")
+     .as('qps')
+     .keep()
+   |alert()
+      .id('{{ .TaskName }}-mysql qps')
+      .details('''
+Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
+''')
+      .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "server" }}/mysql-qps - qps: {{ "qps" | printf "%0.2f" }}, details: <br>	select: {{ index .Fields "jsel.value" | printf "%0.2f" }}<br>	update: {{ index .Fields "jupd.value" | printf "%0.2f" }}<br>	insert: {{ index .Fields "jins.value" | printf "%0.2f" }}<br>	replace: {{ index .Fields "jrep.value" | printf "%0.2f" }}<br>	delete: {{ index .Fields "jdel.value" | printf "%0.2f" }}<br>	begin: {{ index .Fields "jbeg.value" | printf "%0.2f" }}<br>	commit: {{ index .Fields "jcomm.value" | printf "%0.2f" }}<br>	rollback: {{ index .Fields "jroll.value" | printf "%0.2f" }}<br>	show_status: {{ index .Fields "jss.value" | printf "%0.2f" }}<br>	show_variables: {{ index .Fields "jss.value" | printf "%0.2f" }}<br>	stmt_execute: {{ index .Fields "jse.value" | printf "%0.2f" }} ')
+      .warn(lambda: "qps" > warn_value) 
+      .crit(lambda: "qps" > crit_value) 
+      .log('/tmp/mysql_qps.log')
+
+      .email()
+        .to('email-address')

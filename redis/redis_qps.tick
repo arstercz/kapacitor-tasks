@@ -1,0 +1,28 @@
+dbrp "hostmonitor"."autogen"
+var period_time = 2m
+var every_time  = 1m
+var warn_value = 5000
+var crit_value = 20000
+
+var redis_data = stream
+   |from()
+    .measurement('redis')
+    .groupBy('dc', 'host', 'port')
+   |window()
+    .period(period_time)
+    .every(every_time)
+    .align()
+   |last('instantaneous_ops_per_sec')
+    .as('qps')
+   |alert()
+      .id('{{ .TaskName }}-redis qps')
+      .details('''
+Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Host: {{ index .Tags "host" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
+''')
+      .message('{{ .Level}}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "port" }}/redis-qps - qps: {{ index .Fields "qps" }}')
+      .warn(lambda: "qps" > warn_value)
+      .critReset(lambda: "qps" > crit_value) 
+      .log('/tmp/redis_qps.log')
+
+      .email()
+        .to('email-address')

@@ -1,0 +1,43 @@
+dbrp "hostmonitor"."autogen"
+var period_time = 6m
+var every_time  = 3m
+
+var cpu_data = stream 
+   | from()
+     .measurement('cpu')
+     .database('hostmonitor')
+     .groupBy('dc', 'host')
+     .where (lambda: "cpu" == 'cpu-total') 
+   |window()
+     .period(period_time)
+     .every(every_time)
+     .align()
+
+var idle_data = cpu_data
+   |mean('usage_idle')
+     .as('value')
+
+var usage_data = cpu_data
+   |eval(lambda: "usage_guest" + "usage_user" + "usage_system")
+     .as('usage_value')
+   |mean('usage_value')
+     .as('value')
+
+idle_data
+   |join(usage_data)
+     .as('jidle', 'jusage')
+   |alert()
+      .id('{{ .TaskName }}-cpu usage')
+      .details('''
+Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Host: {{ index .Tags "host" }}<br>ServerHost: {{ .ServerInfo.Hostname }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
+''')
+      .message('{{ .Level}}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ .Name }} has high cpu load, total cpu usage: {{ index .Fields "jusage.value" | printf "%0.2f" }}, total cpu idle: {{ index .Fields "jidle.value" | printf "%0.2f" }}')
+      .warn(lambda: "jusage.value" > 40) 
+      .crit(lambda: "jusage.value" > 70) 
+      .critReset(lambda: "jusage.value" > 85) 
+      .log('/tmp/cpu_usage.log')
+
+      .email()
+        .to('email-address')
+
+      //.exec('/tmp/collect.pl')

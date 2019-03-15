@@ -1,0 +1,29 @@
+dbrp "hostmonitor"."autogen"
+var period_time = 3m
+var every_time  = 3m
+var warn_value  = 700
+var crit_value  = 1200
+
+var mem_data = stream
+   |from()
+    .measurement('memcached')
+    .database('hostmonitor')
+    .groupBy('dc', 'host', 'server')
+   |window()
+    .period(period_time)
+    .every(every_time)
+    .align()
+   |last('curr_connections')
+    .as('conn')
+   |alert()
+      .id('{{ .TaskName }}- connections')
+      .details('''
+Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Host: {{ index .Tags "host" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
+''')
+      .message('{{ .Level}}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "server" }}/memcache-conn - current conn: {{ index .Fields "conn" }} }}')
+      .warn(lambda: "conn" > warn_value)
+      .critReset(lambda: "conn" > crit_value) 
+      .log('/tmp/memcached_conn.log')
+
+      .email()
+        .to('email-address')

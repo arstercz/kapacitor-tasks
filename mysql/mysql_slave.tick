@@ -1,0 +1,57 @@
+dbrp "hostmonitor"."autogen"
+var period_time = 5m
+var every_time  = 3m
+
+// slave delay
+var warn_value = 1000
+
+var mysql_data = stream
+   |from()
+    .measurement('redis')
+    .groupBy('dc', 'host', 'server')
+   |default()
+    .field('slave_last_io_error', 'ok')
+    .field('slave_last_sql_error', 'ok')
+    .field('slave_sql_delay', 0)
+    .field('slave_slave_io_running', 1)
+    .field('slave_slave_sql_running', 1)
+   |window()
+    .period(period_time)
+    .every(every_time)
+    .align()
+
+var io_run = mysql_data 
+   |last('slave_slave_io_running')
+     .as('value')
+
+var sql_run = mysql_data
+   |last('slave_slave_sql_running')
+     .as('value')
+
+var delay = mysql_data
+   |last('slave_sql_delay')
+     .as('value')
+
+var ioerr = mysql_data
+   |last('slave_last_io_error')
+     .as('value')
+
+var sqlerr = mysql_data
+   |last('slave_last_io_error')
+     .as('value')
+
+io_run
+   |join(sql_run, delay, ioerr, sqlerr)
+      .as('jio', 'jsql', 'jdelay', 'jioerr', 'jsqlerr')
+   |alert()
+      .id('{{ .TaskName }}-mysql slave')
+      .details('''
+Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Host: {{ index .Tags "host" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
+''')
+      .message('{{ .Level}}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "server" }}/mysql-slave - io_run: {{ index .Fields "jio.value" }}, sql_run: {{ index .Fields "jsql.value" }}, delay: {{ index .Fields "jdelay.value" }}, last_io_error: {{ index .Fields "jioerr.value" }}, last_sql_error: {{ index .Fields "jsqlerr.value" }}')
+      .warn(lambda: "jio.value" == 1 AND "jsql.value" == 1 AND "jdelay.value" > warn_value)
+      .critReset(lambda: "jio.value" == 0 OR "jsql.value" == 0) 
+      .log('/tmp/mysql_slave.log')
+
+      .email()
+        .to('email-address')

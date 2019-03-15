@@ -1,0 +1,50 @@
+// TELEGRAF CONFIGURATION
+// [[inputs.net]]
+
+
+// Parameters
+dbrp "hostmonitor"."autogen"
+var period_time = 2m
+var every_time  = 1m
+var warn_value = 60
+var crit_value = 100
+
+var net_data = batch
+  |query('''
+     SELECT derivative("bytes_recv") as recv, derivative("bytes_sent") as sent
+     FROM "hostmonitor"."autogen"."net" WHERE "interface" != 'all'
+   ''')
+    .period(period_time)
+    .every(every_time)
+    .groupBy('dc', 'host')
+    .align()
+
+
+var recv_data = net_data
+  |eval(lambda: int("recv") / 1024 / 1024)
+    .as('rate')
+  |mean('rate')
+    .as('recv_rate')
+
+var sent_data = net_data
+  |eval(lambda: int("sent") / 1024 / 1024)
+    .as('rate')
+  |mean('rate')
+    .as('sent_rate')
+
+recv_data
+  |join(sent_data)
+    .as('jrecv', 'jsent')
+  |alert()
+    .id('{{ .TaskName }}-network traffic')
+    .details('''
+Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
+''')
+    .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/net - network has high traffic: recv: {{ index .Fields "jrecv.recv_rate" | printf "%0.2f" }}MB, sent: {{ index .Fields "jsent.sent_rate" | printf "%0.2f" }}')
+    .warn(lambda: "jrecv.recv_rate" + "jsent.sent_rate" > warn_value)
+    .crit(lambda: "jrecv.recv_rate" + "jsent.sent_rate" > crit_value)
+
+    .log('/tmp/net_traffic.log')
+    
+    .email()
+      .to('email-address')

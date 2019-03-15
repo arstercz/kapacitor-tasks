@@ -1,0 +1,24 @@
+dbrp "hostmonitor"."autogen"
+var period_time = 1m
+var every_time  = 1m
+
+var redis_data = stream
+   |from()
+    .measurement('redis')
+    .groupBy('dc', 'host', 'port', 'replication_role')
+    .where(lambda: "replication_role" == 'slave')
+   |window()
+    .period(period_time)
+    .every(every_time)
+    .align()
+   |alert()
+      .id('{{ .TaskName }}-redis slave check')
+      .details('''
+Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Host: {{ index .Tags "host" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
+''')
+      .message('{{ .Level}}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "port" }}/redis-slave - role: {{ index .Tags "replication_role" }}, link status: {{ index .Fields "master_link_status" }}')
+      .warn(lambda: "master_link_status" != 'up') 
+      .log('/tmp/redis_slave.log')
+
+      .email()
+        .to('email-address')

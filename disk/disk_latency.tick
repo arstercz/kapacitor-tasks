@@ -1,0 +1,38 @@
+dbrp "hostmonitor"."autogen"
+var period_time = 2m
+var every_time  = 5m
+
+// all read, write time's unit is ms
+var disk_data = batch
+   |query('''
+       SELECT derivative("read_time") as rtime, derivative("write_time") as wtime 
+       FROM "hostmonitor"."autogen"."diskio"
+     ''')
+     .groupBy('dc', 'host', 'name')
+     .period(period_time)
+     .every(every_time)
+     .align()
+
+var rtime_data = disk_data
+  |mean('rtime')
+    .as('rtime_rate')
+
+var wtime_data = disk_data
+  |mean('wtime')
+    .as('wtime_rate')
+
+rtime_data
+   |join(wtime_data)
+     .as('jrtime', 'jwtime')
+   |alert()
+      .id('{{ .TaskName }}-disk latency')
+      .details('''
+Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
+''')
+      .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/diskio - device: {{ index .Tags "name" }}, read: {{ index .Fields "jrtime.rtime_rate" | printf "%0.2f" }}ms, write: {{ index .Fields "jwtime.wtime_rate" | printf "%0.2f" }}ms')
+      .warn(lambda: "jrtime.rtime_rate" + "jwtime.wtime_rate" > 1200) 
+      .crit(lambda: "jrtime.rtime_rate" + "jwtime.wtime_rate" > 3000) 
+      .log('/tmp/disk_latency.log')
+
+      .email()
+        .to('email-address')

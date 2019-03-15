@@ -1,0 +1,60 @@
+dbrp "hostmonitor"."autogen"
+var period_time = 3m
+var every_time  = 3m
+var warn_value  = 95
+var crit_value  = 99
+
+
+var mem_data = stream
+   |from()
+     .measurement('mem')
+     .database('hostmonitor')
+     .groupBy('dc', 'host')
+   |window()
+     .period(period_time)
+     .every(every_time)
+     .align()
+
+var used_pct = mem_data 
+   |last('used_percent')
+     .as('mem_used_pct')
+
+var used_gb = mem_data
+   |last('used')
+     .as('last_used')
+   |eval(lambda: float(int("last_used") / (1024 * 1024 * 1024)))
+     .as('mem_used')
+
+var avai_gb = mem_data
+   |last('available')
+     .as('last_avai')
+   |eval(lambda: float(int("last_avai") / (1024 * 1024 * 1024)))
+     .as('mem_avai')
+
+var total_gb = mem_data
+   |last('total')
+     .as('last_total')
+   |eval(lambda: float(int("last_total") / (1024 * 1024 * 1024)))
+     .as('mem_total')
+
+var bufferCached = mem_data
+   |eval(lambda: float("available" - "free") / (1024 * 1024 * 1024))
+     .as('bc_diff')
+   |last('bc_diff')
+     .as('mem_bc')
+
+used_pct
+   |join(total_gb, used_gb, bufferCached)
+      .as('jused_pct', 'jtotal_gb', 'jused_gb', 'jbufferCached')
+   |alert()
+      .id('{{ .TaskName }}-memory usage')
+      .details('''
+Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
+''')
+      .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/memory - used_pct: {{ index .Fields "jused_pct.mem_used_pct" | printf "%0.2f" }}%, used: {{ index .Fields "jused_gb.mem_used" | printf "%0.2f" }}GB, buffer/cached: {{ index .Fields "jbufferCached.mem_bc" | printf "%0.2f" }}GB, total:{{ index .Fields "jtotal_gb.mem_total" | printf "%0.2f" }}GB')
+      .warn(lambda: "jused_pct.mem_used_pct" > warn_value) 
+      .crit(lambda: "jused_pct.mem_used_pct" > crit_value) 
+      .log('/tmp/memory.log')
+
+      .email()
+        .to('email-address')

@@ -1,0 +1,42 @@
+dbrp "hostmonitor"."autogen"
+var period_time = 3m
+var every_time  = 3m
+
+// warn: 100MB, crit: 300MB
+var warn_value  = 100
+var crit_value  = 300
+
+// all read, write time's unit is ms
+var disk_data = batch
+   |query('''
+       SELECT derivative("read_bytes") as rbyte, derivative("write_bytes") as wbyte 
+       FROM "hostmonitor"."autogen"."diskio"
+     ''')
+     .groupBy('dc', 'host', 'name')
+     .period(period_time)
+     .every(every_time)
+     .align()
+
+var rbyte_data = disk_data
+  |mean('rbyte')
+    .as('value')
+
+var wbyte_data = disk_data
+  |mean('wbyte')
+    .as('value')
+
+rbyte_data
+   |join(wbyte_data)
+     .as('jrbyte', 'jwbyte')
+   |alert()
+      .id('{{ .TaskName }}-disk bandwidth')
+      .details('''
+Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
+''')
+      .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/diskio - device: {{ index .Tags "name" }}, read: {{ index .Fields "jrbyte.value" | printf "%0.2f" }}bytes, write: {{ index .Fields "jwbyte.value" | printf "%0.2f" }}bytes')
+      .warn(lambda: int("jrbyte.value" + "jwbyte.value") > int(warn_value * 1024 * 1024)) 
+      .critReset(lambda: int("jrbyte.value" + "jwbyte.value") > int(crit_value * 1024 * 1024)) 
+      .log('/tmp/disk_bandwidth.log')
+
+      .email()
+        .to('email-address')

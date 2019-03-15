@@ -1,0 +1,58 @@
+// TELEGRAF CONFIGURATION
+// [[inputs.netstat]]
+
+
+// Parameters
+dbrp "hostmonitor"."autogen"
+var period_time = 10m
+var every_time  = 5m
+var warn_value = 10000
+var crit_value = 30000
+var warnSig = 150
+var critSig = 300
+
+var net_data = stream
+  |from()
+    .database('hostmonitor')
+    .measurement('netstat')
+    .groupBy('dc', 'host')
+  |window()
+    .period(period_time)
+    .every(every_time)
+    .align()
+
+var clo_conn = net_data
+  |mean('tcp_close')
+    .as('value')
+
+var clw_conn = net_data
+  |mean('tcp_close_wait')
+    .as('value')
+
+var est_conn = net_data
+  |mean('tcp_established')
+    .as('value')
+
+var syn_conn = net_data
+  |mean('tcp_syn_recv')
+    .as('value')
+
+clo_conn
+  |join(clw_conn, est_conn, syn_conn)
+    .as('jclo', 'jclw', 'jest', 'jsyn')
+  |eval(lambda: sigma("jclo.value" + "jclw.value" + "jest.value" + "jsyn.value"))
+    .as('sigma')
+    .keep()
+  |alert()
+    .id('{{ .TaskName }}-network connections')
+    .details('''
+Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
+''')
+    .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/net - net connections has a lot of change, stddev: {{ index .Fields "sigma" | printf "%0.2f" }}, tcp_close: {{ index .Fields "jclo.value" | printf "%0.2f" }}, tcp_close_wait: {{ index .Fields "jclw.value" | printf "%0.2f" }}, tcp_establish:{{ index .Fields "jest.value" | printf "%0.2f" }}, tcp_syn_recv: {{ index .Fields "jsyn.value" }}')
+    .warn(lambda: "jclo.value" + "jclw.value" + "jest.value" + "jsyn.value" > warn_value OR "sigma" > warnSig)
+    .critReset(lambda: "jclo.value" + "jclw.value" + "jest.value" + "jsyn.value" > crit_value OR "sigma" > critSig)
+
+    .log('/tmp/netstat.log')
+    
+    .email()
+      .to('email-address')

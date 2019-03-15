@@ -1,0 +1,45 @@
+dbrp "hostmonitor"."autogen"
+var period_time = 2m
+var every_time  = 1m
+var warn_value = 75
+var crit_value = 90
+
+var redis_data = stream
+   |from()
+    .measurement('redis')
+    .groupBy('dc', 'host', 'port')
+   |window()
+    .period(period_time)
+    .every(every_time)
+    .align()
+
+var max_mem = redis_data
+   |last('maxmemory')
+    .as('max')
+   |eval(lambda: float("max" / (1024*1024)))
+    .as('value')
+
+var used_mem = redis_data
+   |last('used_memory')
+    .as('used')
+   |eval(lambda: float("used" / (1024*1024)))
+    .as('value')
+
+max_mem
+   |join(used_mem)
+     .as('jmax', 'jused')
+   |eval(lambda: float(int("jused.value") * 100 / int("jmax.value")))
+     .as('used_pct')
+     .keep()
+   |alert()
+      .id('{{ .TaskName }}-redis memory usage')
+      .details('''
+Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Host: {{ index .Tags "host" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
+''')
+      .message('{{ .Level}}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "port" }}/redis-memory-usage - used_pct: {{ index .Fields "used_pct" | printf "%0.2f" }}%， max: {{ index .Fields "jmax.value" | printf "%0.2f" }}MB, used: {{ index .Fields "jused.value" | printf "%0.2f" }}MB ')
+      .warn(lambda: "used_pct" > warn_value)
+      .critReset(lambda: "used_pct" > crit_value) 
+      .log('/tmp/redis_mem.log')
+
+      .email()
+        .to('email-address')

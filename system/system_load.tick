@@ -1,0 +1,29 @@
+dbrp "hostmonitor"."autogen"
+var period_time = 3m
+var every_time  = 3m
+var warn_value  = 10
+var crit_value  = 30
+
+var load_data = batch
+   |query('''
+       SELECT mean(load1) as load1, mean(load5) as load5, mean(load15) as load15 
+       FROM "hostmonitor"."autogen"."system"
+   ''')
+    .period(period_time)
+    .every(every_time)
+    .groupBy('dc', 'host')
+    .align()
+
+load_data
+   |alert()
+      .id('{{ .TaskName }}-load average')
+      .details('''
+Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Host: {{ index .Tags "host" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
+''')
+      .message('{{ .Level}}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/load has high load: {{ index .Fields "load1" | printf "%0.2f" }}, {{ index .Fields "load5" | printf "%0.2f" }}, {{ index .Fields "load15" | printf "%0.2f" }}')
+      .warn(lambda: "load1" > warn_value) 
+      .crit(lambda: "load1" > crit_value AND "load5" > warn_value) 
+      .log('/tmp/load.log')
+
+      .email()
+        .to('email-address')
