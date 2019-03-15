@@ -10,10 +10,14 @@ var mysql_data = batch
        SELECT derivative("com_select") as com_sel, derivative("com_update") as com_upd, derivative("com_update_multi") as com_upd_mul, derivative("com_insert") as com_ins, derivative("com_insert_select") as com_ins_sel, derivative("com_replace") as com_rep, derivative("com_replace_select") as com_rep_sel, derivative("com_delete") as com_del, derivative("com_delete_multi") as com_del_mul, derivative("com_begin") as com_begin, derivative("com_commit") as com_commit, derivative("com_rollback") as com_roll, derivative("com_show_status") as com_s_sts, derivative("com_show_variables") as com_s_var, derivative("com_stmt_execute") as com_s_exe
        FROM "hostmonitor"."autogen"."mysql"
      ''')
-     .groupBy('dc', 'host', 'name')
+     .groupBy('dc', 'host', 'server')
      .period(period_time)
      .every(every_time)
      .align()
+    |default()
+     .field('com_begin', 0)
+     .field('com_commit', 0)
+     .field('com_rollback', 0)
 
 var com_sel = mysql_data
   |last('com_sel')
@@ -79,7 +83,7 @@ com_sel
       .details('''
 Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
 ''')
-      .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "server" }}/mysql-qps - qps: {{ "qps" | printf "%0.2f" }}, details: <br>	select: {{ index .Fields "jsel.value" | printf "%0.2f" }}<br>	update: {{ index .Fields "jupd.value" | printf "%0.2f" }}<br>	insert: {{ index .Fields "jins.value" | printf "%0.2f" }}<br>	replace: {{ index .Fields "jrep.value" | printf "%0.2f" }}<br>	delete: {{ index .Fields "jdel.value" | printf "%0.2f" }}<br>	begin: {{ index .Fields "jbeg.value" | printf "%0.2f" }}<br>	commit: {{ index .Fields "jcomm.value" | printf "%0.2f" }}<br>	rollback: {{ index .Fields "jroll.value" | printf "%0.2f" }}<br>	show_status: {{ index .Fields "jss.value" | printf "%0.2f" }}<br>	show_variables: {{ index .Fields "jss.value" | printf "%0.2f" }}<br>	stmt_execute: {{ index .Fields "jse.value" | printf "%0.2f" }} ')
+      .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "server" }}/mysql-qps - qps: {{ index .Fields "qps" | printf "%0.2f" }}, details: select: {{ index .Fields "jsel.value" | printf "%0.2f" }}, update: {{ index .Fields "jupd.value" | printf "%0.2f" }}, insert: {{ index .Fields "jins.value" | printf "%0.2f" }}, replace: {{ index .Fields "jrep.value" | printf "%0.2f" }}, delete: {{ index .Fields "jdel.value" | printf "%0.2f" }}, begin: {{ index .Fields "jbeg.value" | printf "%0.2f" }}, commit: {{ index .Fields "jcomm.value" | printf "%0.2f" }}, rollback: {{ index .Fields "jroll.value" | printf "%0.2f" }}, show_status: {{ index .Fields "jss.value" | printf "%0.2f" }}, show_variables: {{ index .Fields "jss.value" | printf "%0.2f" }}, stmt_execute: {{ index .Fields "jse.value" | printf "%0.2f" }} ')
       .warn(lambda: "qps" > warn_value) 
       .crit(lambda: "qps" > crit_value) 
       .log('/tmp/mysql_qps.log')
