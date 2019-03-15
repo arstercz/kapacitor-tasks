@@ -1,7 +1,10 @@
 dbrp "hostmonitor"."autogen"
-var period_time = 2m
+var period_time = 3m
 var every_time  = 1m
 var warn_value = 20
+
+// telegraf collect variables 30m once by default
+var var_time = 30m 
 
 var mysql_data = stream
    |from()
@@ -20,7 +23,7 @@ var var_data = stream
     .measurement('mysql_variables')
     .groupBy('dc', 'host', 'server')
    |window()
-    .period(period_time)
+    .period(var_time)
     .every(every_time)
     .align()
 
