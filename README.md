@@ -67,6 +67,14 @@ redis_qps.tick
 redis_slave.tick
 ```
 
+## check tools
+
+the `check_tools` directory contains some useful utilities so that we can check custom timeseries data:
+```
+exec_parse.pl
+[TODO]
+```
+
 ## License
 
 MIT/BSD
