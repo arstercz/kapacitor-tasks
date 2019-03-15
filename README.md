@@ -2,6 +2,8 @@
 
 The [Kapacitor](https://docs.influxdata.com/kapacitor/v1.5/) task scripts, can be used with [InfluxDB](https://docs.influxdata.com/influxdb/v1.7/) to monitor timeseries data.
 
+**note**: these task scripts only test in `kapacitor-1.5` and `influxdb-1.7`, some `influx tag` or `field` maybe different at old version. 
+
 ## How to use?
 
 #### define the task
