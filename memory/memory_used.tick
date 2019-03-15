@@ -38,7 +38,7 @@ var total_gb = mem_data
      .as('mem_total')
 
 var bufferCached = mem_data
-   |eval(lambda: float("available" - "free") / (1024 * 1024 * 1024))
+   |eval(lambda: float(int("available" - "free") / (1024 * 1024 * 1024)))
      .as('bc_diff')
    |last('bc_diff')
      .as('mem_bc')
