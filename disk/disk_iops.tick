@@ -1,6 +1,8 @@
 dbrp "hostmonitor"."autogen"
 var period_time = 2m
 var every_time  = 5m
+var warn_value  = 1500
+var crit_value  = 5000
 
 // all read, write unit is iops
 var disk_data = batch
@@ -30,8 +32,8 @@ rps_data
 Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
 ''')
       .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/diskio - device: {{ index .Tags "name" }}, read: {{ index .Fields "jrps.rps_rate" | printf "%0.2f" }}iops, write: {{ index .Fields "jwps.wps_rate" | printf "%0.2f" }}iops')
-      .warn(lambda: "jrps.rps_rate" + "jwps.wps_rate" > 1500) 
-      .crit(lambda: "jrps.rps_rate" + "jwps.wps_rate" > 5000) 
+      .warn(lambda: "jrps.rps_rate" + "jwps.wps_rate" > warn_value) 
+      .crit(lambda: "jrps.rps_rate" + "jwps.wps_rate" > crit_value) 
       .log('/tmp/disk_iops.log')
 
       .email()

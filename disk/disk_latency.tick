@@ -1,6 +1,8 @@
 dbrp "hostmonitor"."autogen"
 var period_time = 2m
 var every_time  = 5m
+var warn_value  = 1200
+var crit_value  = 3000
 
 // all read, write time's unit is ms
 var disk_data = batch
@@ -30,8 +32,8 @@ rtime_data
 Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
 ''')
       .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/diskio - device: {{ index .Tags "name" }}, read: {{ index .Fields "jrtime.rtime_rate" | printf "%0.2f" }}ms, write: {{ index .Fields "jwtime.wtime_rate" | printf "%0.2f" }}ms')
-      .warn(lambda: "jrtime.rtime_rate" + "jwtime.wtime_rate" > 1200) 
-      .crit(lambda: "jrtime.rtime_rate" + "jwtime.wtime_rate" > 3000) 
+      .warn(lambda: "jrtime.rtime_rate" + "jwtime.wtime_rate" > warn_value) 
+      .crit(lambda: "jrtime.rtime_rate" + "jwtime.wtime_rate" > crit_value) 
       .log('/tmp/disk_latency.log')
 
       .email()

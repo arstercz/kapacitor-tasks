@@ -1,6 +1,8 @@
 dbrp "hostmonitor"."autogen"
 var period_time = 1m
 var every_time  = 5m
+var warn_value  = 75
+var crit_value  = 90
 
 var disk_data = stream 
    | from()
@@ -22,8 +24,8 @@ disk_data
 Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
 ''')
       .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/disk - device: {{ index .Tags "device" }}, partition: {{ index .Tags "path" }}, total size: {{ index .Fields "total_size" }}GB, used pct: {{ index .Fields "disk_used" }}%')
-      .warn(lambda: "disk_used" > 75) 
-      .crit(lambda: "disk_used" > 90) 
+      .warn(lambda: "disk_used" > warn_value) 
+      .crit(lambda: "disk_used" > crit_value) 
       .log('/tmp/disk.log')
 
       .email()
