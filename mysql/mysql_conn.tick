@@ -4,7 +4,7 @@ var every_time  = 1m
 var warn_value = 20
 
 // telegraf collect variables 30m once by default
-var var_time = 30m 
+var var_time = 35m 
 
 var mysql_data = stream
    |from()
