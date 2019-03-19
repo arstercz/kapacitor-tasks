@@ -19,8 +19,8 @@ lastest data.
        user|u:    influxdb's username.
        password|p influxdb's user password.
        delay|t:   delay seconds ago will be consider as expire time, 
-                  default is 60, delay time should greater than 
-                  telegraf's `interval + jitter`
+                  default is 60, delay time should greater than telegraf's
+                  `interval + jitter + flush_interval + flush_jitter`
        verbose|v: print verbose message.
 
 =cut
