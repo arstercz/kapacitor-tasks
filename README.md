@@ -69,11 +69,27 @@ redis_slave.tick
 
 ## check tools
 
+#### dependency
+
+the following dependency packages should be installed:
+```
+perl-libwww-perl
+perl-HTTP-Message
+perl-DateTime
+perl-JSON
+```
+
+#### how to use?
+
 the `check_tools` directory contains some useful utilities so that we can check custom timeseries data:
 ```
-exec_parse.pl
-[TODO]
+exec_parse.pl   # sample usage when you use the alert.exec() method
+service_check.pl  
+service_check.tick
 ```
+the `service_check.pl` check the lastest `system`, `mysql`, `redis` and `memcached` items, then insert expire status to the "db"."autogen"."service_check". `service_check.tick` use the `isTimeExpire` filed to determine whether the service is alive or dead, or missing lastest data.
+
+`service_check.pl` can be run as crontab jobs, and the period time in `service_check.tick` should be greater than crontab interval time.
 
 ## License
 

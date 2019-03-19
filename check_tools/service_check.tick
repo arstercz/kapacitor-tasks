@@ -1,0 +1,29 @@
+// the service_check.pl script check the lastest system, mysql, redis and memcached 
+// items, then insert expire items to the "hostmonitor"."autogen"."service_check", 
+// and this tick use the isTimeExpire filed to determine whether the host is alive 
+// or dead, or missing last data.
+dbrp "hostmonitor"."autogen"
+var period_time = 2m
+var every_time  = 2m
+
+var data = batch
+     |query('''
+       SELECT  last("isTimeExpire") as lc 
+       FROM "hostmonitor"."autogen"."service_check"
+     ''')
+     .groupBy('dc', 'host', 'server', 'service')
+     .period(period_time)
+     .every(every_time)
+     .align()
+   |alert()
+     .id('{{ .TaskName }}-service check')
+     .details('''
+Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
+''')
+     .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "server" }}/{{ index .Tags "service" }} check - service is dead or missing lastest data.')
+     .warn(lambda: "lc" == 1)
+     .crit(lambda: "lc" == 2)
+     .log('/tmp/service_check.log')
+
+     .email()
+       .to('email-address')
