@@ -77,6 +77,7 @@ perl-libwww-perl
 perl-HTTP-Message
 perl-DateTime
 perl-JSON
+perl-Data-Dumper
 ```
 
 #### how to use?
