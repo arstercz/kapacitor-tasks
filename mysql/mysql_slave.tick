@@ -7,7 +7,7 @@ var warn_value = 1000
 
 var mysql_data = stream
    |from()
-    .measurement('redis')
+    .measurement('mysql')
     .groupBy('dc', 'host', 'server')
    |default()
     .field('slave_last_io_error', 'ok')
