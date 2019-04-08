@@ -49,7 +49,7 @@ Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Host: {{ index .Ta
 ''')
       .message('{{ .Level}}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "server" }}/mysql-conn - thread running: {{ index .Fields "jrun.value" | printf "%0.2f" }}, thread connected: {{ index .Fields "jconn.value" | printf "%0.2f" }}, max connect: {{ index .Fields "jmax.value" }}')
       .warn(lambda: "jrun.value" > warn_value AND int("jrun.value" / "jconn.value") * 100 > 30 )
-      .critReset(lambda: int("jconn.value" / "jmax.value") * 100 > 50)
+      .crit(lambda: int("jconn.value" / "jmax.value") * 100 > 50)
       .log('/tmp/mysql_conn.log')
 
       .email()

@@ -50,7 +50,7 @@ Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Host: {{ index .Ta
 ''')
       .message('{{ .Level}}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "server" }}/mysql-slave - io_run: {{ index .Fields "jio.value" }}, sql_run: {{ index .Fields "jsql.value" }}, delay: {{ index .Fields "jdelay.value" }}, last_io_error: {{ index .Fields "jioerr.value" }}, last_sql_error: {{ index .Fields "jsqlerr.value" }}')
       .warn(lambda: "jio.value" == 1 AND "jsql.value" == 1 AND "jdelay.value" > warn_value)
-      .critReset(lambda: "jio.value" == 0 OR "jsql.value" == 0) 
+      .crit(lambda: "jio.value" == 0 OR "jsql.value" == 0) 
       .log('/tmp/mysql_slave.log')
 
       .email()

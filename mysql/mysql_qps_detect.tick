@@ -24,7 +24,7 @@ Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Id: {{ .ID }}<br>D
 ''')
       .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "server" }}/diskio - qps: {{ index .Fields "qps" | printf "%0.2f" }}iops, sigma: {{ index .Fields "sigma" }}')
       .warn(lambda: "sigma" > warn_value) 
-      .critReset(lambda: "sigma" > crit_value) 
+      .crit(lambda: "sigma" > crit_value) 
       .log('/tmp/mysql_qps_detect.log')
 
       .email()
