@@ -17,7 +17,7 @@ batch
       .details('''
 Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Host: {{ index .Tags "host" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
 ''')
-      .message('{{ .Level}}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/swap has high used: {{ index .Fields "used" | printf "%0.2f" }}KB, {{ index .Fields "used_pct" }}%')
+      .message('{{ .Level}}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/swap has high used: {{ index .Fields "used" | printf "%0.2f" }}KB, {{ index .Fields "used_pct" | printf "%0.3f" }}%')
       .warn(lambda: "used" > int(warn_value * 1024)) 
       .crit(lambda: "used_pct" >= 1 ) 
 
