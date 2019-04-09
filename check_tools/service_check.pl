@@ -158,7 +158,10 @@ sub item_filter {
     my $isTimeExpire = 0;
     my $time_diff    = $now - $time_epoch;
     if ($time_diff > $delay) {
-      if ($time_diff > 3600) {
+      if ($time_diff > 86400) {
+        $isTimeExpire = 3; # this host maybe already removed!
+      }
+      elsif ($time_diff > 3600) {
         $isTimeExpire = 2; # too long time, should be critical level
       }
       else {
