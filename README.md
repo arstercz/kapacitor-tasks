@@ -1,6 +1,6 @@
 # kapacitor-tasks
 
-The [Kapacitor](https://docs.influxdata.com/kapacitor/v1.5/) task scripts, can be used with [InfluxDB](https://docs.influxdata.com/influxdb/v1.7/) to monitor timeseries data.
+The [Kapacitor](https://docs.influxdata.com/kapacitor/v1.5/) task scripts, can be used with [InfluxDB](https://docs.influxdata.com/influxdb/v1.7/) to monitor timeseries data. can be used with [kapacitor-alarm](https://github.com/arstercz/kapacitor-alarm).
 
 **note**: these task scripts only test in `kapacitor-1.5` and `influxdb-1.7`, some `influx tag` or `field` maybe different at old version. 
 
