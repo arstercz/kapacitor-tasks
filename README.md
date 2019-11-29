@@ -84,6 +84,7 @@ perl-Data-Dumper
 
 the `check_tools` directory contains some useful utilities so that we can check custom timeseries data:
 ```
+set_tick.sh     # define and enable kapacitor tasks in batch way
 exec_parse.pl   # sample usage when you use the alert.exec() method
 service_check.pl  
 service_check.tick
@@ -91,6 +92,13 @@ service_check.tick
 the `service_check.pl` check the lastest `system`, `mysql`, `redis` and `memcached` items, then insert expire status to the "db"."autogen"."service_check". `service_check.tick` use the `isTimeExpire` filed to determine whether the service is alive or dead, or missing lastest data.
 
 `service_check.pl` can be run as crontab jobs, and the period time in `service_check.tick` should be greater than crontab interval time.
+
+#### define and enable kapacitor tasks
+
+```
+$ cd kapacitor-tasks
+$ bash check_tools/set_tick.sh -d -e
+```
 
 ## License
 
