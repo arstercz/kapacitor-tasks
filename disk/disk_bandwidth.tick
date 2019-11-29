@@ -35,8 +35,5 @@ Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Id: {{ .ID }}<br>D
 ''')
       .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/diskio - device: {{ index .Tags "name" }}, read: {{ index .Fields "jrbyte.value" | printf "%0.2f" }}bytes, write: {{ index .Fields "jwbyte.value" | printf "%0.2f" }}bytes')
       .warn(lambda: int("jrbyte.value" + "jwbyte.value") > int(warn_value * 1024 * 1024)) 
-      .critReset(lambda: int("jrbyte.value" + "jwbyte.value") > int(crit_value * 1024 * 1024)) 
-      .log('/tmp/disk_bandwidth.log')
-
-      .email()
-        .to('email-address')
+      .crit(lambda: int("jrbyte.value" + "jwbyte.value") > int(crit_value * 1024 * 1024)) 
+      .exec('/usr/local/bin/kap-exec', '--conf', '/etc/kapalarm/kap.conf')

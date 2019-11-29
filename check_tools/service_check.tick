@@ -23,7 +23,4 @@ Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Id: {{ .ID }}<br>D
      .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "server" }}/{{ index .Tags "service" }} check - service is dead or missing lastest data.')
      .warn(lambda: "lc" == 1)
      .crit(lambda: "lc" == 2)
-     .log('/tmp/service_check.log')
-
-     .email()
-       .to('email-address')
+     .exec('/usr/local/bin/kap-exec', '--conf', '/etc/kapalarm/kap.conf')

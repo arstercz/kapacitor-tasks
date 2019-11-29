@@ -50,9 +50,6 @@ Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Id: {{ .ID }}<br>D
 ''')
     .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/net - net connections has a lot of change, stddev: {{ index .Fields "sigma" | printf "%0.2f" }}, tcp_close: {{ index .Fields "jclo.value" | printf "%0.2f" }}, tcp_close_wait: {{ index .Fields "jclw.value" | printf "%0.2f" }}, tcp_establish:{{ index .Fields "jest.value" | printf "%0.2f" }}, tcp_syn_recv: {{ index .Fields "jsyn.value" }}')
     .warn(lambda: "jclo.value" + "jclw.value" + "jest.value" + "jsyn.value" > warn_value OR "sigma" > warnSig)
-    .critReset(lambda: "jclo.value" + "jclw.value" + "jest.value" + "jsyn.value" > crit_value OR "sigma" > critSig)
+    .crit(lambda: "jclo.value" + "jclw.value" + "jest.value" + "jsyn.value" > crit_value OR "sigma" > critSig)
+    .exec('/usr/local/bin/kap-exec', '--conf', '/etc/kapalarm/kap.conf')
 
-    .log('/tmp/netstat.log')
-    
-    .email()
-      .to('email-address')

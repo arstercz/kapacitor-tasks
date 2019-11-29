@@ -36,9 +36,4 @@ Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Host: {{ index .Ta
       .message('{{ .Level}}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ .Name }} has high cpu load, total cpu usage: {{ index .Fields "jusage.value" | printf "%0.2f" }}, total cpu idle: {{ index .Fields "jidle.value" | printf "%0.2f" }}')
       .warn(lambda: "jusage.value" > warn_value) 
       .crit(lambda: "jusage.value" > crit_value) 
-      .log('/tmp/cpu_usage.log')
-
-      .email()
-        .to('email-address')
-
-      //.exec('/tmp/collect.pl')
+      .exec('/usr/local/bin/kap-exec', '--conf', '/etc/kapalarm/kap.conf')

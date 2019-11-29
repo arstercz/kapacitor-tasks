@@ -1,11 +1,11 @@
 dbrp "hostmonitor"."autogen"
 var period_time = 2m
 var every_time  = 5m
-var warn_value  = 20
+var warn_value  = 10485760 //10M
 
 batch
    |query('''
-       SELECT difference("used_percent") as used_pct, difference("used") as used
+       SELECT difference("used_percent") as used_pct_per, difference("used") as used_per
        FROM "hostmonitor"."autogen"."swap"
    ''')
     .period(period_time)
@@ -17,12 +17,7 @@ batch
       .details('''
 Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Host: {{ index .Tags "host" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
 ''')
-      .message('{{ .Level}}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/swap has high used: {{ index .Fields "used" | printf "%0.2f" }}KB, {{ index .Fields "used_pct" | printf "%0.3f" }}%')
-      .warn(lambda: "used" > int(warn_value * 1024)) 
+      .message('{{ .Level}}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/swap has high used: {{ index .Fields "used_per" | printf "%0.2f" }}KB, {{ index .Fields "used_pct_per" | printf "%0.3f" }}%')
+      .warn(lambda: "used" > warn_value) 
       .crit(lambda: "used_pct" >= 1 ) 
-
-      // log to file
-      .log('/tmp/swap.log')
-
-      .email()
-        .to('email-address')
+      .exec('/usr/local/bin/kap-exec', '--conf', '/etc/kapalarm/kap.conf')

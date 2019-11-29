@@ -21,8 +21,5 @@ Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Host: {{ index .Ta
 ''')
       .message('{{ .Level}}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "port" }}/redis-conn - current clients: {{ index .Fields "conn" }}')
       .warn(lambda: "conn" > warn_value)
-      .critReset(lambda: "conn" > crit_value) 
-      .log('/tmp/redis_conn.log')
-
-      .email()
-        .to('email-address')
+      .crit(lambda: "conn" > crit_value) 
+      .exec('/usr/local/bin/kap-exec', '--conf', '/etc/kapalarm/kap.conf')

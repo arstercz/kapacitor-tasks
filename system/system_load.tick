@@ -23,7 +23,4 @@ Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Host: {{ index .Ta
       .message('{{ .Level}}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/load has high load: {{ index .Fields "load1" | printf "%0.2f" }}, {{ index .Fields "load5" | printf "%0.2f" }}, {{ index .Fields "load15" | printf "%0.2f" }}')
       .warn(lambda: "load1" > warn_value) 
       .crit(lambda: "load1" > crit_value AND "load5" > warn_value) 
-      .log('/tmp/load.log')
-
-      .email()
-        .to('email-address')
+      .exec('/usr/local/bin/kap-exec', '--conf', '/etc/kapalarm/kap.conf')

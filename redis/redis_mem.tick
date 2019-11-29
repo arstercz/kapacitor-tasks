@@ -38,8 +38,5 @@ Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Host: {{ index .Ta
 ''')
       .message('{{ .Level}}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "port" }}/redis-memory-usage - used_pct: {{ index .Fields "used_pct" | printf "%0.2f" }}%， max: {{ index .Fields "jmax.value" | printf "%0.2f" }}MB, used: {{ index .Fields "jused.value" | printf "%0.2f" }}MB ')
       .warn(lambda: "used_pct" > warn_value)
-      .critReset(lambda: "used_pct" > crit_value) 
-      .log('/tmp/redis_mem.log')
-
-      .email()
-        .to('email-address')
+      .crit(lambda: "used_pct" > crit_value) 
+      .exec('/usr/local/bin/kap-exec', '--conf', '/etc/kapalarm/kap.conf')

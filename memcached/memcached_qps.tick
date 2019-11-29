@@ -33,7 +33,4 @@ Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Host: {{ index .Ta
       .message('{{ .Level}}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "server" }}/memcache-qps - get: {{ index .Fields "jget.value" | printf "%0.2f" }}, set: {{ index .Fields "jset.value" | printf "%0.2f" }}')
       .warn(lambda: "jget.value" + "jset.value" > warn_value)
       .critReset(lambda: "jget.value" + "jset.value" > crit_value) 
-      .log('/tmp/memcached_qps.log')
-
-      .email()
-        .to('email-address')
+      .exec('/usr/local/bin/kap-exec', '--conf', '/etc/kapalarm/kap.conf')

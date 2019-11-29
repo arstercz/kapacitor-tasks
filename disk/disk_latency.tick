@@ -31,10 +31,7 @@ rtime_data
       .details('''
 Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
 ''')
-      .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/diskio - device: {{ index .Tags "name" }}, read: {{ index .Fields "jrtime.rtime_rate" | printf "%0.2f" }}ms, write: {{ index .Fields "jwtime.wtime_rate" | printf "%0.2f" }}ms')
+      .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/disk-latency - device: {{ index .Tags "name" }}, read: {{ index .Fields "jrtime.rtime_rate" | printf "%0.2f" }}ms, write: {{ index .Fields "jwtime.wtime_rate" | printf "%0.2f" }}ms')
       .warn(lambda: "jrtime.rtime_rate" + "jwtime.wtime_rate" > warn_value) 
       .crit(lambda: "jrtime.rtime_rate" + "jwtime.wtime_rate" > crit_value) 
-      .log('/tmp/disk_latency.log')
-
-      .email()
-        .to('email-address')
+      .exec('/usr/local/bin/kap-exec', '--conf', '/etc/kapalarm/kap.conf')

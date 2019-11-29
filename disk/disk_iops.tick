@@ -34,7 +34,4 @@ Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Id: {{ .ID }}<br>D
       .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/diskio - device: {{ index .Tags "name" }}, read: {{ index .Fields "jrps.rps_rate" | printf "%0.2f" }}iops, write: {{ index .Fields "jwps.wps_rate" | printf "%0.2f" }}iops')
       .warn(lambda: "jrps.rps_rate" + "jwps.wps_rate" > warn_value) 
       .crit(lambda: "jrps.rps_rate" + "jwps.wps_rate" > crit_value) 
-      .log('/tmp/disk_iops.log')
-
-      .email()
-        .to('email-address')
+      .exec('/usr/local/bin/kap-exec', '--conf', '/etc/kapalarm/kap.conf')

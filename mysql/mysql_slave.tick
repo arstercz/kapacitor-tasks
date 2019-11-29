@@ -27,7 +27,4 @@ Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Host: {{ index .Ta
       .message('{{ .Level}}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "server" }}/mysql-slave - io_run: {{ index .Fields "slave_slave_io_running" }}, sql_run: {{ index .Fields "slave_slave_sql_running" }}, delay: {{ index .Fields "slave_sql_delay" }}, last_io_error: {{ index .Fields "slave_last_io_error" }}, last_sql_error: {{ index .Fields "slave_last_sql_error" }}')
       .warn(lambda: "slave_slave_io_running" == 1 AND "slave_slave_sql_running" == 1 AND "slave_sql_delay" > warn_value)
       .crit(lambda: "slave_slave_io_running" == 0 OR "slave_slave_io_running" == 0) 
-      .log('/tmp/mysql_slave.log')
-
-      .email()
-        .to('email-address')
+      .exec('/usr/local/bin/kap-exec', '--conf', '/etc/kapalarm/kap.conf')

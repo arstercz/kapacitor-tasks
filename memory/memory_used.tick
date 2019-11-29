@@ -54,7 +54,4 @@ Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Id: {{ .ID }}<br>D
       .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/memory - used_pct: {{ index .Fields "jused_pct.mem_used_pct" | printf "%0.2f" }}%, used: {{ index .Fields "jused_gb.mem_used" | printf "%0.2f" }}GB, buffer/cached: {{ index .Fields "jbufferCached.mem_bc" | printf "%0.2f" }}GB, total:{{ index .Fields "jtotal_gb.mem_total" | printf "%0.2f" }}GB')
       .warn(lambda: "jused_pct.mem_used_pct" > warn_value) 
       .crit(lambda: "jused_pct.mem_used_pct" > crit_value) 
-      .log('/tmp/memory.log')
-
-      .email()
-        .to('email-address')
+      .exec('/usr/local/bin/kap-exec', '--conf', '/etc/kapalarm/kap.conf')
