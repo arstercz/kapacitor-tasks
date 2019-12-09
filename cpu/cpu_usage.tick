@@ -33,7 +33,7 @@ idle_data
       .details('''
 Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Host: {{ index .Tags "host" }}<br>ServerHost: {{ .ServerInfo.Hostname }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
 ''')
-      .message('{{ .Level}}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ .Name }} has high cpu load, total cpu usage: {{ index .Fields "jusage.value" | printf "%0.2f" }}, total cpu idle: {{ index .Fields "jidle.value" | printf "%0.2f" }}')
+      .message('{{ .Level}}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/cpu - total cpu usage: {{ index .Fields "jusage.value" | printf "%0.2f" }}, total cpu idle: {{ index .Fields "jidle.value" | printf "%0.2f" }}')
       .warn(lambda: "jusage.value" > warn_value) 
       .crit(lambda: "jusage.value" > crit_value) 
       .exec('/usr/local/bin/kap-exec', '--conf', '/etc/kapalarm/kap.conf')

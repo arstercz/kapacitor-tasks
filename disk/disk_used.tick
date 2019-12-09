@@ -23,7 +23,7 @@ disk_data
       .details('''
 Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
 ''')
-      .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/disk - device: {{ index .Tags "device" }}, partition: {{ index .Tags "path" }}, total size: {{ index .Fields "total_size" }}GB, used pct: {{ index .Fields "disk_used" }}%')
+      .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "device" }}/disk - device: {{ index .Tags "device" }}, partition: {{ index .Tags "path" }}, total size: {{ index .Fields "total_size" }}GB, used pct: {{ index .Fields "disk_used" }}%')
       .warn(lambda: "disk_used" > warn_value) 
       .crit(lambda: "disk_used" > crit_value) 
       .exec('/usr/local/bin/kap-exec', '--conf', '/etc/kapalarm/kap.conf')

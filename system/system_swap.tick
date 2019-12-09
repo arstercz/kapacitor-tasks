@@ -17,7 +17,7 @@ batch
       .details('''
 Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Host: {{ index .Tags "host" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
 ''')
-      .message('{{ .Level}}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/swap has high used: {{ index .Fields "used_per" | printf "%0.2f" }}KB, {{ index .Fields "used_pct_per" | printf "%0.3f" }}%')
+      .message('{{ .Level}}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/swap - high used: {{ index .Fields "used_per" | printf "%0.2f" }}KB, {{ index .Fields "used_pct_per" | printf "%0.3f" }}%')
       .warn(lambda: "used" > warn_value) 
       .crit(lambda: "used_pct" >= 1 ) 
       .exec('/usr/local/bin/kap-exec', '--conf', '/etc/kapalarm/kap.conf')

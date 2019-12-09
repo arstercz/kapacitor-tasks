@@ -33,7 +33,7 @@ run_data
       .details('''
 Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Host: {{ index .Tags "host" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
 ''')
-      .message('{{ .Level}}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/process status - running: {{ index .Fields "jrun.value" | printf "%0.2f" }}, total: {{ index .Fields "jto.value" | printf "%0.2f" }}, total_threads: {{ index .Fields "jtot.value" | printf "%0.2f" }}')
+      .message('{{ .Level}}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/process - running: {{ index .Fields "jrun.value" | printf "%0.2f" }}, total: {{ index .Fields "jto.value" | printf "%0.2f" }}, total_threads: {{ index .Fields "jtot.value" | printf "%0.2f" }}')
       .warn(lambda: "jrun.value" > warn_value) 
       .crit(lambda: "jrun.value" > crit_value OR "jtot.value" > int(crit_value * 50)) 
       .exec('/usr/local/bin/kap-exec', '--conf', '/etc/kapalarm/kap.conf')

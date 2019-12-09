@@ -7,7 +7,7 @@ var crit_value = 20000
 // all read, write unit is iops
 var mysql_data = batch
    |query('''
-       SELECT derivative("com_select") as com_sel, derivative("com_update") as com_upd, derivative("com_update_multi") as com_upd_mul, derivative("com_insert") as com_ins, derivative("com_insert_select") as com_ins_sel, derivative("com_replace") as com_rep, derivative("com_replace_select") as com_rep_sel, derivative("com_delete") as com_del, derivative("com_delete_multi") as com_del_mul, derivative("com_begin") as com_begin, derivative("com_commit") as com_commit, derivative("com_rollback") as com_roll, derivative("com_show_status") as com_s_sts, derivative("com_show_variables") as com_s_var, derivative("com_stmt_execute") as com_s_exe
+       SELECT non_negative_derivative("com_select") as com_sel, non_negative_derivative("com_update") as com_upd, non_negative_derivative("com_update_multi") as com_upd_mul, non_negative_derivative("com_insert") as com_ins, non_negative_derivative("com_insert_select") as com_ins_sel, non_negative_derivative("com_replace") as com_rep, non_negative_derivative("com_replace_select") as com_rep_sel, non_negative_derivative("com_delete") as com_del, non_negative_derivative("com_delete_multi") as com_del_mul, non_negative_derivative("com_begin") as com_begin, non_negative_derivative("com_commit") as com_commit, non_negative_derivative("com_rollback") as com_roll, non_negative_derivative("com_show_status") as com_s_sts, non_negative_derivative("com_show_variables") as com_s_var, non_negative_derivative("com_stmt_execute") as com_s_exe
        FROM "hostmonitor"."autogen"."mysql"
      ''')
      .groupBy('dc', 'host', 'server')

@@ -33,7 +33,7 @@ rbyte_data
       .details('''
 Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
 ''')
-      .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/diskio - device: {{ index .Tags "name" }}, read: {{ index .Fields "jrbyte.value" | printf "%0.2f" }}bytes, write: {{ index .Fields "jwbyte.value" | printf "%0.2f" }}bytes')
+      .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "name" }}/bandwidth - device: {{ index .Tags "name" }}, read: {{ index .Fields "jrbyte.value" | printf "%0.2f" }}bytes, write: {{ index .Fields "jwbyte.value" | printf "%0.2f" }}bytes')
       .warn(lambda: int("jrbyte.value" + "jwbyte.value") > int(warn_value * 1024 * 1024)) 
       .crit(lambda: int("jrbyte.value" + "jwbyte.value") > int(crit_value * 1024 * 1024)) 
       .exec('/usr/local/bin/kap-exec', '--conf', '/etc/kapalarm/kap.conf')

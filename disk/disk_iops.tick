@@ -31,7 +31,7 @@ rps_data
       .details('''
 Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
 ''')
-      .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/diskio - device: {{ index .Tags "name" }}, read: {{ index .Fields "jrps.rps_rate" | printf "%0.2f" }}iops, write: {{ index .Fields "jwps.wps_rate" | printf "%0.2f" }}iops')
+      .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "name" }}/diskio - device: {{ index .Tags "device" }}, read: {{ index .Fields "jrps.rps_rate" | printf "%0.2f" }}iops, write: {{ index .Fields "jwps.wps_rate" | printf "%0.2f" }}iops')
       .warn(lambda: "jrps.rps_rate" + "jwps.wps_rate" > warn_value) 
       .crit(lambda: "jrps.rps_rate" + "jwps.wps_rate" > crit_value) 
       .exec('/usr/local/bin/kap-exec', '--conf', '/etc/kapalarm/kap.conf')
