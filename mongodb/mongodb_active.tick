@@ -1,0 +1,39 @@
+dbrp "hostmonitor"."autogen"
+var period_time = 2m
+var every_time  = 1m
+var warn_value = 30
+var crit_value = 100
+
+var mongodb_data = stream
+   |from()
+    .measurement('mongodb')
+    .groupBy('dc', 'host', 'hostname')
+   |window()
+    .period(period_time)
+    .every(every_time)
+    .align()
+
+var active_reads = mongodb_data
+  |mean('active_reads')
+    .as('value')
+
+var active_writes  = mongodb_data
+  |mean('active_writes')
+    .as('value')
+
+
+active_reads
+  |join(active_writes)
+    .as('a_read', 'a_write')
+  |eval(lambda: "a_read.value" + "a_write.value")
+    .as('actives')
+    .keep()
+  |alert()
+    .id('{{ .TaskName }}-mongodb active read/write')
+    .details('''
+Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
+''')
+    .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "hostname" }}/mongodb - actives: {{ index .Fields "actives" | printf "%0.2f" }}, active reads: {{ index .Fields "a_read.value" | printf "%0.2f" }}, active writes: {{ index .Fields "a_write.value" | printf "%0.2f" }} ')
+    .warn(lambda: "actives" > warn_value)
+    .crit(lambda: "actives" > crit_value)
+    .exec('/usr/local/bin/kap-exec', '--conf', '/etc/kapalarm/kap.conf')

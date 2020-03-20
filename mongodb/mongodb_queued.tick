@@ -1,0 +1,39 @@
+dbrp "hostmonitor"."autogen"
+var period_time = 2m
+var every_time  = 1m
+var warn_value = 10
+var crit_value = 50
+
+var mongodb_data = stream
+   |from()
+    .measurement('mongodb')
+    .groupBy('dc', 'host', 'hostname')
+   |window()
+    .period(period_time)
+    .every(every_time)
+    .align()
+
+var queued_reads = mongodb_data
+  |mean('queued_reads')
+    .as('value')
+
+var queued_writes  = mongodb_data
+  |mean('queued_writes')
+    .as('value')
+
+
+queued_reads
+  |join(queued_writes)
+    .as('q_read', 'q_write')
+  |eval(lambda: "q_read.value" + "q_write.value")
+    .as('queued')
+    .keep()
+  |alert()
+    .id('{{ .TaskName }}-mongodb active read/write')
+    .details('''
+Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
+''')
+    .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "hostname" }}/mongodb - queued: {{ index .Fields "queued" | printf "%0.2f" }}, queued reads: {{ index .Fields "q_read.value" | printf "%0.2f" }}, active writes: {{ index .Fields "q_write.value" | printf "%0.2f" }} ')
+    .warn(lambda: "queued" > warn_value)
+    .crit(lambda: "queued" > crit_value)
+    .exec('/usr/local/bin/kap-exec', '--conf', '/etc/kapalarm/kap.conf')

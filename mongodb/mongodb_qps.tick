@@ -1,0 +1,56 @@
+dbrp "hostmonitor"."autogen"
+var period_time = 2m
+var every_time  = 1m
+var warn_value = 5000
+var crit_value = 20000
+
+var mongodb_data = stream
+   |from()
+    .measurement('mongodb')
+    .groupBy('dc', 'host', 'hostname')
+   |window()
+    .period(period_time)
+    .every(every_time)
+    .align()
+
+var com_command = mongodb_data
+  |mean('commands_per_sec')
+    .as('value')
+
+var com_delete  = mongodb_data
+  |mean('deletes_per_sec')
+    .as('value')
+
+var com_getmore = mongodb_data
+  |mean('getmores_per_sec')
+    .as('value')
+
+var com_insert  = mongodb_data
+  |mean('inserts_per_sec')
+    .as('value')
+
+var com_update  = mongodb_data
+  |mean('updates_per_sec')
+    .as('value')
+
+var com_query   = mongodb_data
+  |mean('queries_per_sec')
+    .as('value')
+
+
+com_command 
+  |join(com_delete, com_getmore, com_insert, com_update, com_query)
+    .as('c_cmd', 'c_del', 'c_getm', 'c_ins', 'c_upd', 'c_que')
+  |eval(lambda: "c_cmd.value" + "c_del.value" + "c_getm.value" + "c_ins.value" + "c_upd.value" + "c_que.value")
+    .as('qps')
+    .keep()
+  |alert()
+    .id('{{ .TaskName }}-mongodb qps')
+    .details('''
+Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
+''')
+    .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "hostname" }}/mongodb-qps -  qps: {{ index .Fields "qps" | printf "%0.2f" }}, command: {{ index .Fields "c_cmd.value" | printf "%0.2f" }}, delete: {{ index .Fields "c_del.value" | printf "%0.2f" }}, getmore: {{ index .Fields "c_getm.value" | printf "%0.2f" }}, insert: {{ index .Fields "c_ins.value" | printf "%0.2f" }}, update: {{ index .Fields "c_upd.value" | printf "%0.2f" }}, query: {{ index .Fields "c_que.value" | printf "%0.2f" }} ')
+    .warn(lambda: "qps" > warn_value)
+    .crit(lambda: "qps" > crit_value)
+    .exec('/usr/local/bin/kap-exec', '--conf', '/etc/kapalarm/kap.conf')
+

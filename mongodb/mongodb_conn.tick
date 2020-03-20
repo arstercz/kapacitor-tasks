@@ -1,0 +1,35 @@
+dbrp "hostmonitor"."autogen"
+var period_time = 2m
+var every_time  = 1m
+var warn_value  = 2000
+var crit_value  = 5000
+
+var mongodb_data = stream
+   |from()
+    .measurement('mongodb')
+    .groupBy('dc', 'host', 'hostname')
+   |window()
+    .period(period_time)
+    .every(every_time)
+    .align()
+
+var conn_cur = mongodb_data
+   |mean('connections_current')
+     .as('value')
+
+var conn_ava = mongodb_data
+   |mean('connections_available')
+
+conn_cur
+   |join(conn_ava)
+     .as('m_cur', 'm_ava')
+   |alert()
+     .id('{{ .TaskName }}- connections')
+     .details('''
+Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Host: {{ index .Tags "host" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
+''')
+      .message('{{ .Level}}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "hostname" }}/mongodb-conn - current conn: {{ index .Fields "m_cur.value" | printf "%0.2f" }}, available conn: {{ index .Fields "m_ava.value" | printf "%0.2f" }}')
+      .warn(lambda: "conn" > warn_value OR int("m_cur.value" / "m_ava.value") > 2 )
+      .crit(lambda: "conn" > crit_value OR int("m_cur.value" / "m_ava.value") > 4 ) 
+      .exec('/usr/local/bin/kap-exec', '--conf', '/etc/kapalarm/kap.conf')
+

@@ -7,7 +7,6 @@ var crit_value  = 1200
 var mem_data = stream
    |from()
     .measurement('memcached')
-    .database('hostmonitor')
     .groupBy('dc', 'host', 'server')
    |window()
     .period(period_time)
