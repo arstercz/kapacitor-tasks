@@ -61,7 +61,7 @@ var com_roll = mysql_data
     .as('value')
 
 var com_call = mysql_data
-  |last('com_call_procedure')
+  |last('com_call')
     .as('value')
 
 var com_s_sts = mysql_data
