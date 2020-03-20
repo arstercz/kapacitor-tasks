@@ -1,7 +1,7 @@
 dbrp "hostmonitor"."autogen"
 var period_time = 3m
 var every_time  = 1m
-var warn_value = 20
+var warn_value = 15
 
 // telegraf collect variables 30m once by default
 var var_time = 35m 
@@ -48,6 +48,6 @@ max
 Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Host: {{ index .Tags "host" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
 ''')
       .message('{{ .Level}}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "server" }}/mysql-conn - thread running: {{ index .Fields "jrun.value" | printf "%0.2f" }}, thread connected: {{ index .Fields "jconn.value" | printf "%0.2f" }}, max connect: {{ index .Fields "jmax.value" }}')
-      .warn(lambda: "jrun.value" > warn_value AND int("jrun.value" / "jconn.value") * 100 > 30 )
+      .warn(lambda: "jrun.value" > warn_value OR int("jrun.value" / "jconn.value") * 100 > 30 )
       .crit(lambda: int("jconn.value" / "jmax.value") * 100 > 50)
       .exec('/usr/local/bin/kap-exec', '--conf', '/etc/kapalarm/kap.conf')
