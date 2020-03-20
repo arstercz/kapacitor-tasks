@@ -52,6 +52,15 @@ network_traffic.tick
 memcached_conn.tick
 memcached_qps.tick
 ```
+
+#### mongodb
+```
+mongodb_active.tick
+mongodb_conn.tick
+mongodb_qps.tick
+mongodb_queued.tick
+```
+
 #### mysql
 ```
 mysql_conn.tick
