@@ -40,7 +40,7 @@ recv_data
     .details('''
 Time: {{ .Time.Local.Format "2006-01-02T15:04:05Z07:00" }}<br>Id: {{ .ID }}<br>Duration: {{ .Duration }}<br>Message: {{ .Message }}
 ''')
-    .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "interface" }}/net - network has high traffic: recv: {{ index .Fields "jrecv.recv_rate" | printf "%0.2f" }}MB, sent: {{ index .Fields "jsent.sent_rate" | printf "%0.2f" }}')
+    .message('{{ .Level }}: {{ index .Tags "dc" }}/{{ index .Tags "host" }}/{{ index .Tags "interface" }}/net - network has high traffic: recv: {{ index .Fields "jrecv.recv_rate" | printf "%0.2f" }}MB, sent: {{ index .Fields "jsent.sent_rate" | printf "%0.2f" }}MB')
     .warn(lambda: "jrecv.recv_rate" + "jsent.sent_rate" > warn_value)
     .crit(lambda: "jrecv.recv_rate" + "jsent.sent_rate" > crit_value)
     .exec('/usr/local/bin/kap-exec', '--conf', '/etc/kapalarm/kap.conf')
